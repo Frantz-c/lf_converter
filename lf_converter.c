@@ -60,8 +60,6 @@ int		replace_all_lf(char	*content, char *new_content, int opt)
 			{
 				strncpy(new_content + offset, content, lf - content + 1);
 				offset += (lf - content) + 1;
-				//fprintf(stderr, "Error: '\\r' detected, stop.\n");
-				//exit(1);
 			}
 			else
 			{
@@ -84,8 +82,7 @@ int		replace_all_lf(char	*content, char *new_content, int opt)
 
 	if (offset == 0)
 	{
-		fprintf(stderr, "Error: no '\\n' detected, stop.\n");
-		exit(1);
+		return (-1);
 	}
 	len = strlen(content);
 	strncpy(new_content + offset, content, len);
@@ -128,7 +125,7 @@ int		count_lf(char *s)
 		s++;
 	while (*s && (tmp = strchr(s, '\n')))
 	{
-		if (s[-1] != '\r')
+		if (tmp[-1] != '\r')
 			count++;
 		s = tmp + 1;
 	}
@@ -142,7 +139,11 @@ char	*malloc_new_content(char *content, int content_size, int opt)
 	int			lf_count = 0;
 
 	if (opt == WINDOWS)
+	{
 		lf_count = count_lf(content);
+		if (lf_count == 0)
+			return (NULL);
+	}
 	if (new_size < content_size + lf_count)
 	{
 		free(new_content);
@@ -177,15 +178,30 @@ void	replace_lf(int opt, char *file)
 	
 	if ((content = file_get_contents(file, &size)) == NULL)
 		return;
-	new_content = malloc_new_content(content, size, opt);
-	new_size = replace_all_lf(content, new_content, opt);
+	if ((new_content = malloc_new_content(content, size, opt)) == NULL
+		|| (new_size = replace_all_lf(content, new_content, opt)) == -1)
+	{
+		fprintf(stderr, "Warning: no %s lf detected in \"%s\", skip.\n", opt == WINDOWS ? "windows's" : "unix", file);
+		return;
+	}
+
+#ifdef BACKUP
 	backup_name = get_backup_name(file);
 	rename(file, backup_name);
+#else
+	remove(file);
+#endif
+
 	int fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, 0664);
 	if (fd == -1)
 	{
+#ifdef BACKUP
 		rename(backup_name, file);
-		fprintf(stderr, "Error 0x01\n");
+		fprintf(stderr, "Can't modify file %s, try to restore it from backups\n", file);
+#else
+		fprintf(stderr, "Can't create file %s, print content to stdout\n\n", file);
+		write(1, new_content, new_size);
+#endif
 		exit(1);
 	}
 	write(fd, new_content, new_size);
@@ -200,7 +216,11 @@ int		main(int ac, char *av[])
 		return (print_help(av[0]));
 	if ((opt = get_option(av[1])) == ERROR)
 		return (ERROR);
+
+#ifdef BACKUP
 	mkdir(BACKUP_DIR, 0777);
+#endif
+
 	for (av += 2; *av; av++)
 	{
 		replace_lf(opt, *av);
