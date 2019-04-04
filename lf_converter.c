@@ -52,7 +52,7 @@ int		replace_all_lf(char	*content, char *new_content, int opt)
 	int		offset = 0;
 	int		len;
 
-	while ((lf = strchr(content, c)))
+	while (*content && (lf = strchr(content, c)))
 	{
 		if (opt == WINDOWS)
 		{
@@ -124,15 +124,18 @@ int		count_lf(char *s)
 	char	*tmp;
 	int		count = 0;
 
-	while ((tmp = strstr(s, "\r\n")))
+	if (*s == '\n')
+		s++;
+	while (*s && (tmp = strchr(s, '\n')))
 	{
-		count++;
-		s = tmp + 2;
+		if (s[-1] != '\r')
+			count++;
+		s = tmp + 1;
 	}
 	return (count);
 }
 
-char	*malloc_new_content(char *content, int content_size, int *size, int opt)
+char	*malloc_new_content(char *content, int content_size, int opt)
 {
 	static char	*new_content = NULL;
 	static int	new_size = 0;
@@ -144,10 +147,8 @@ char	*malloc_new_content(char *content, int content_size, int *size, int opt)
 	{
 		free(new_content);
 		new_size = lf_count + content_size;
-		*size = new_size;
-		return (malloc(new_size));
+		return (new_content = malloc(new_size));
 	}
-	*size = new_size;
 	return (new_content);
 }
 
@@ -176,7 +177,7 @@ void	replace_lf(int opt, char *file)
 	
 	if ((content = file_get_contents(file, &size)) == NULL)
 		return;
-	new_content = malloc_new_content(content, size, &new_size, opt);
+	new_content = malloc_new_content(content, size, opt);
 	new_size = replace_all_lf(content, new_content, opt);
 	backup_name = get_backup_name(file);
 	rename(file, backup_name);
