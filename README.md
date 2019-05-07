@@ -4,7 +4,7 @@ the Makefile run 'gcc -O3 lf_converter.c -o lfconv' command
 run without arguments print the usage
 
 
-#usage
+usage
 
     ./lfconv [option] files...
     option:
