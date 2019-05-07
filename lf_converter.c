@@ -22,9 +22,9 @@
 
 int		print_help(char *prog)
 {
-	printf("%s [option] file ...\n\n"
-			"--windows, -w\n"
-			"--unix, -u\n\n",
+	printf("%s [option] files...\n\n"
+			"--windows, -w : convert to windows format lf\n"
+			"--unix, -u    : convert to unix format lf\n\n",
 			prog);
 	return (0);
 }
@@ -181,7 +181,7 @@ void	replace_lf(int opt, char *file)
 	if ((new_content = malloc_new_content(content, size, opt)) == NULL
 		|| (new_size = replace_all_lf(content, new_content, opt)) == -1)
 	{
-		fprintf(stderr, "Warning: no %s lf detected in \"%s\", skip.\n", opt == WINDOWS ? "windows's" : "unix", file);
+		fprintf(stderr, "Warning: no %s lf detected in \"%s\", skip.\n", opt == UNIX ? "windows's" : "unix", file);
 		return;
 	}
 
@@ -212,7 +212,7 @@ int		main(int ac, char *av[])
 {
 	int		opt;
 
-	if (ac < 2)
+	if (ac < 3)
 		return (print_help(av[0]));
 	if ((opt = get_option(av[1])) == ERROR)
 		return (ERROR);
